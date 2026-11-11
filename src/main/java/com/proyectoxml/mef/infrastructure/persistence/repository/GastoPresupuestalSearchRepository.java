@@ -25,11 +25,12 @@ public class GastoPresupuestalSearchRepository {
         String direction = "DESC".equalsIgnoreCase(pagination.getDirection()) ? "DESC" : "ASC";
         String comparison = "DESC".equals(direction) ? "<" : ">";
 
-        SqlQueryBuilder query = new SqlQueryBuilder("""
-            SELECT fg.*
+        SqlQueryBuilder query = new SqlQueryBuilder(String.format(
+        """
+            SELECT TOP (%d) fg.*
             FROM mef.Fact_Gasto_Presupuestal fg
             WHERE 1 = 1 
-        """);
+        """, pagination.getLimit()));
 
         filters.apply(filter, query);
 
@@ -38,22 +39,26 @@ public class GastoPresupuestalSearchRepository {
                 (
                     %s %s :lastSortValue  
                     OR
-                    (%s = :lastSortValue AND fg.Id_Hecho > :lastId)
+                    (%s = :lastSortValue AND fg.Id_Hecho %s :lastId)
                 )
-            """, sortBy, comparison, sortBy))
+            """, sortBy, comparison, sortBy, comparison))
             .param("lastSortValue", pagination.getLastSortValue())
             .param("lastId", pagination.getLastId());
         }
 
         String orderByClause = sortBy.equalsIgnoreCase("fg.Id_Hecho") 
             ? String.format("ORDER BY fg.Id_Hecho %s", direction)
-            : String.format("ORDER BY %s %s, fg.Id_Hecho ASC", sortBy, direction);
+            : String.format("ORDER BY %s %s, fg.Id_Hecho %s", sortBy, direction, direction);
 
+        /* 
         query.append(String.format("""
                 %s
                 OFFSET 0 ROWS 
                 FETCH NEXT %d ROWS ONLY
             """, orderByClause, pagination.getLimit()));
+        */
+        
+        query.append(orderByClause);
 
         return databaseClient
             .sql(query.sql())
@@ -66,7 +71,7 @@ public class GastoPresupuestalSearchRepository {
 
         SqlQueryBuilder query = new SqlQueryBuilder("""
             SELECT COUNT(*)
-            FROM Fact_Gasto_Presupuestal fg
+            FROM mef.Fact_Gasto_Presupuestal fg
             WHERE 1 = 1 
         """);
 
@@ -74,6 +79,7 @@ public class GastoPresupuestalSearchRepository {
         
         return databaseClient
             .sql(query.sql())
+            .bindValues(query.params())
             .mapValue(Long.class)
             .one();
 
@@ -81,11 +87,15 @@ public class GastoPresupuestalSearchRepository {
 
     private String validarCampoSort(String sortBy) {
 
-        if (sortBy == null) return "fg.Id_Hecho";
+        if (sortBy == null || sortBy.isBlank()) return "fg.Id_Hecho";
         String campo = sortBy.toLowerCase().replace("fg.", "");
 
         switch (campo) {
             case "idhecho": return "fg.Id_Hecho";
+            case "idtiempo": return "fg.Id_Tiempo";
+            case "identidad": return "fg.Id_Entidad";
+            case "idclasificador": return "fg.Id_Clasificador";
+            case "idubicacion": return "fg.Id_Ubicacion";
             case "pia": return "fg.PIA";
             case "pim": return "fg.PIM";
             case "certificado": return "fg.Certificado";
@@ -94,6 +104,7 @@ public class GastoPresupuestalSearchRepository {
             case "devengado": return "fg.Devengado";
             case "girado": return "fg.Girado";
             case "idejecucion": return "fg.Id_Ejecucion";
+            case "idurl": return "fg.Id_Url";
             case "fechacarga": return "fg.Fecha_Carga";
             default: return "fg.Id_Hecho";
         }

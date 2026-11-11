@@ -18,7 +18,7 @@ public class GastoPresupuestal {
     private BigDecimal devengado;
     private BigDecimal girado;
     private Integer idEjecucion;
-    private String urlOrigen;
+    private Long idUrl;
     private LocalDateTime fechaCarga;
     
     @Builder.Default

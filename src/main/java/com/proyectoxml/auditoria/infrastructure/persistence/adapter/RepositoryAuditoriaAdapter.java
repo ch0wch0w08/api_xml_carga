@@ -26,16 +26,14 @@ public class RepositoryAuditoriaAdapter implements RepositoryAuditoria {
     private final AuditoriaRechazoSearchRepository rechazoSearch;
 
     @Override
-    public Mono<PaginationResponse<Auditoria_ejecucion>> obtenerEjecuciones(
-        AuditoriaEjecucionFilter filter,
-        PaginationQuery query
-    ) {
+    public Mono<PaginationResponse<Auditoria_ejecucion>> obtenerEjecuciones(AuditoriaEjecucionFilter filter,PaginationQuery query) {
         int requestedLimit = query.getLimit();
         query.setLimit(requestedLimit + 1);
-        return ejecucionSearch.search(filter, query)
-            .map(mapper::toDomain)
-            .collectList()
-            .map(items -> {
+        return Mono.zip(
+            ejecucionSearch.search(filter, query).map(mapper::toDomain).collectList(),
+            ejecucionSearch.count(filter)
+        ).map(tuple -> {
+                var items = tuple.getT1();
                 boolean hasNext = items.size() > requestedLimit;
                 if (hasNext) {
                     items.remove(items.size() - 1);
@@ -46,23 +44,21 @@ public class RepositoryAuditoriaAdapter implements RepositoryAuditoria {
                     requestedLimit,
                     hasNext,
                     last == null ? null : extractSortValue(last, query.getSortBy()),
-                    last == null ? null : last.getIdEjecucion()
+                    last == null ? null : last.getIdEjecucion(),
+                    tuple.getT2()
                 );
             });
     }
 
     @Override
-    public Mono<PaginationResponse<Auditoria_detalle>> obtenerDetalles(
-        Long idEjecucion,
-        AuditoriaDetalleFilter filter,
-        PaginationQuery query
-    ) {
+    public Mono<PaginationResponse<Auditoria_detalle>> obtenerDetalles(Long idEjecucion,AuditoriaDetalleFilter filter,PaginationQuery query) {
         int requestedLimit = query.getLimit();
         query.setLimit(requestedLimit + 1);
-        return detalleSearch.search(idEjecucion, filter, query)
-            .map(mapper::toDomain)
-            .collectList()
-            .map(items -> {
+        return Mono.zip(
+            detalleSearch.search(idEjecucion, filter, query).map(mapper::toDomain).collectList(),
+            detalleSearch.count(idEjecucion, filter)
+        ).map(tuple -> {
+                var items = tuple.getT1();
                 boolean hasNext = items.size() > requestedLimit;
                 if (hasNext) {
                     items.remove(items.size() - 1);
@@ -73,7 +69,8 @@ public class RepositoryAuditoriaAdapter implements RepositoryAuditoria {
                     requestedLimit,
                     hasNext,
                     last == null ? null : extractSortValue(last, query.getSortBy()),
-                    last == null ? null : last.getIdDetalle()
+                    last == null ? null : last.getIdDetalle(),
+                    tuple.getT2()
                 );
             });
     }
@@ -82,10 +79,11 @@ public class RepositoryAuditoriaAdapter implements RepositoryAuditoria {
     public Mono<PaginationResponse<Auditoria_rechazos>> obtenerRechazos(Long idEjecucion, PaginationQuery query) {
         int requestedLimit = query.getLimit();
         query.setLimit(requestedLimit + 1);
-        return rechazoSearch.findByIdEjecucion(idEjecucion, query)
-            .map(mapper::toDomain)
-            .collectList()
-            .map(items -> {
+        return Mono.zip(
+            rechazoSearch.findByIdEjecucion(idEjecucion, query).map(mapper::toDomain).collectList(),
+            rechazoSearch.count(idEjecucion)
+        ).map(tuple -> {
+                var items = tuple.getT1();
                 boolean hasNext = items.size() > requestedLimit;
                 if (hasNext) {
                     items.remove(items.size() - 1);
@@ -96,7 +94,8 @@ public class RepositoryAuditoriaAdapter implements RepositoryAuditoria {
                     requestedLimit,
                     hasNext,
                     last == null ? null : extractSortValue(last, query.getSortBy()),
-                    last == null ? null : last.getIdRechazo()
+                    last == null ? null : last.getIdRechazo(),
+                    tuple.getT2()
                 );
             });
     }

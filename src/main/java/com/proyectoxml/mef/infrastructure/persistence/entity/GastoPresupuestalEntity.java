@@ -52,8 +52,8 @@ public class GastoPresupuestalEntity {
     @Column("Id_Ejecucion")
     private Integer idEjecucion;
 
-    @Column("URL_Origen")
-    private String urlOrigen;
+    @Column("Id_Url")
+    private Long idUrl;
     
     @Column("Fecha_Carga")
     private LocalDateTime fechaCarga;

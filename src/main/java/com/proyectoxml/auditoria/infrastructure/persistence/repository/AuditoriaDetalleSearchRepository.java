@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Repository
 @RequiredArgsConstructor
@@ -16,6 +17,17 @@ public class AuditoriaDetalleSearchRepository {
 
     private final DatabaseClient databaseClient;
     private final AuditoriaQueryFilters filters;
+
+    public Flux<Integer> findDistinctAnios() {
+        return databaseClient.sql("""
+            SELECT DISTINCT AnioEje
+            FROM auditoria.Auditoria_ETL_Detalle
+            WHERE AnioEje IS NOT NULL
+            ORDER BY AnioEje DESC
+            """)
+            .map((row, metadata) -> row.get("AnioEje", Integer.class))
+            .all();
+    }
 
     public Flux<AuditoriaDetalleEntity> search(
         Long idEjecucion,
@@ -26,33 +38,30 @@ public class AuditoriaDetalleSearchRepository {
         String direction = "DESC".equalsIgnoreCase(pagination.getDirection()) ? "DESC" : "ASC";
         String comparison = "DESC".equals(direction) ? "<" : ">";
 
-        SqlQueryBuilder query = new SqlQueryBuilder("""
-            SELECT ad.*
+        SqlQueryBuilder query = new SqlQueryBuilder(String.format("""
+            SELECT TOP (%d) ad.*
             FROM auditoria.Auditoria_ETL_Detalle ad
             WHERE ad.Id_Ejecucion = :idEjecucion
-            """).param("idEjecucion", idEjecucion);
-            
+        """, pagination.getLimit())).param("idEjecucion", idEjecucion);
+    
         filters.apply(filter, query);
 
         if (pagination.getLastSortValue() != null && pagination.getLastId() != null) {
             query.and(String.format("""
                 (
                     %s %s :lastSortValue
-                    OR (%s = :lastSortValue AND ad.Id_Detalle > :lastId)
+                    OR (%s = :lastSortValue AND ad.Id_Detalle %s :lastId)
                 )
-                """, sortColumn, comparison, sortColumn))
+                """, sortColumn, comparison, sortColumn, comparison))
                 .param("lastSortValue", pagination.getLastSortValue())
                 .param("lastId", pagination.getLastId());
         }
 
         String orderByClause = sortColumn.equalsIgnoreCase("ad.Id_Detalle")
             ? String.format("ORDER BY ad.Id_Detalle %s", direction)
-            : String.format("ORDER BY %s %s, ad.Id_Detalle ASC", sortColumn, direction);
+            : String.format("ORDER BY %s %s, ad.Id_Detalle %s", sortColumn, direction, direction);
 
-        query.append(String.format("""
-            %s
-            OFFSET 0 ROWS FETCH NEXT %d ROWS ONLY
-            """, orderByClause, pagination.getLimit()));
+        query.append(orderByClause);
 
         return databaseClient.sql(query.sql())
             .bindValues(query.params())
@@ -60,8 +69,24 @@ public class AuditoriaDetalleSearchRepository {
             .all();
     }
 
+    public Mono<Long> count(Long idEjecucion, AuditoriaDetalleFilter filter) {
+
+        SqlQueryBuilder query = new SqlQueryBuilder("""
+            SELECT COUNT_BIG(*) AS totalItems
+            FROM auditoria.Auditoria_ETL_Detalle ad
+            WHERE ad.Id_Ejecucion = :idEjecucion
+        """).param("idEjecucion", idEjecucion);
+
+        filters.apply(filter, query);
+        return databaseClient
+            .sql(query.sql())
+            .bindValues(query.params())
+            .map((row, metadata) -> row.get("totalItems", Long.class))
+            .one();
+    }
+
     private String validateSortColumn(String sortBy) {
-        if (sortBy == null) return "ad.Id_Detalle";
+        if (sortBy == null || sortBy.isBlank()) return "ad.Id_Detalle";
         
         return switch (sortBy.toLowerCase().replace("ad.", "")) {
             case "iddetalle" -> "ad.Id_Detalle";

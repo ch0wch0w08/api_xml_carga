@@ -31,7 +31,8 @@ public class GastoPresupuestalQueryFilters {
                     EXISTS (
                         SELECT 1 
                         FROM mef.Dim_Tiempo dt 
-                        WHERE dt.AnioEje = :AnioEje
+                        WHERE dt.Id_Tiempo = fg.Id_Tiempo
+                        AND dt.AnioEje = :AnioEje
                     )
             """).param("AnioEje", filter.getAnioEje());
         };
@@ -46,7 +47,8 @@ public class GastoPresupuestalQueryFilters {
                     EXISTS (
                         SELECT 1 
                         FROM mef.Dim_Tiempo dt 
-                        WHERE dt.MesEje = :MesEje
+                        WHERE dt.Id_Tiempo = fg.Id_Tiempo
+                        AND dt.MesEje = :MesEje
                     )
             """).param("MesEje", filter.getMesEje());
         };
@@ -76,7 +78,7 @@ public class GastoPresupuestalQueryFilters {
             if(filter.getIdUbicacion() == null){
                 return; 
             }
-            builder.and("Id_Ubicacion = :Id_Ubicacion").param("Id_Ubicacion", filter.getIdClasificador());
+            builder.and("Id_Ubicacion = :Id_Ubicacion").param("Id_Ubicacion", filter.getIdUbicacion());
         };
     }
 

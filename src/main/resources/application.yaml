@@ -3,9 +3,17 @@ spring:
     name: proyectoxml
 
   r2dbc:
-    url: r2dbc:mssql://localhost:1433/DW_MEF
+    url: ${URL_DB}
     username: ${USER}
     password: ${PASSWORD}
     pool:
       initial-size: 10
       max-size: 20
+
+etl:
+  python:
+    executable: ${EXECUTABLE}
+    script-path: ${SCRIPT_PATH}
+    working-directory: ${WORKING_DIRECTORY}
+    database-connection: ${DATABASE_CONNECTION}
+    cancel-grace-seconds: 30

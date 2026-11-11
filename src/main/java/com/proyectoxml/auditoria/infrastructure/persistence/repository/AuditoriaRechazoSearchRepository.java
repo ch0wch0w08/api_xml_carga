@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Repository
 @RequiredArgsConstructor
@@ -19,37 +20,45 @@ public class AuditoriaRechazoSearchRepository {
         String direction = "DESC".equalsIgnoreCase(pagination.getDirection()) ? "DESC" : "ASC";
         String comparison = "DESC".equals(direction) ? "<" : ">";
 
-        SqlQueryBuilder query = new SqlQueryBuilder("""
-            SELECT ar.*
+        SqlQueryBuilder query = new SqlQueryBuilder(String.format("""
+            SELECT TOP (%d) ar.*
             FROM auditoria.Auditoria_ETL_Rechazos ar
             WHERE ar.Id_Ejecucion = :idEjecucion
-            """).param("idEjecucion", idEjecucion);
+        """, pagination.getLimit())).param("idEjecucion", idEjecucion);
 
         if (pagination.getLastId() != null && pagination.getLastSortValue() != null) {
             query.and(String.format("""
                 (
                     %s %s :lastSortValue
                     OR 
-                    (%s = :lastSortValue AND ar.Id_Rechazo > :lastId)
+                    (%s = :lastSortValue AND ar.Id_Rechazo %s :lastId)
                 )
-                """, sortColumn, comparison, sortColumn))
+                """, sortColumn, comparison, sortColumn, comparison))
                 .param("lastSortValue", pagination.getLastSortValue())
                 .param("lastId", pagination.getLastId());
         }
 
         String orderByClause = sortColumn.equalsIgnoreCase("ar.Id_Rechazo") 
             ? String.format("ORDER BY ar.Id_Rechazo %s", direction)
-            : String.format("ORDER BY %s %s, ar.Id_Rechazo ASC", sortColumn, direction);
+            : String.format("ORDER BY %s %s, ar.Id_Rechazo %s", sortColumn, direction, direction);
 
-        query.append(String.format("""
-            %s 
-            OFFSET 0 ROWS FETCH NEXT %d ROWS ONLY
-            """, orderByClause, pagination.getLimit()));
+        query.append(orderByClause);
 
         return databaseClient.sql(query.sql())
             .bindValues(query.params())
             .mapProperties(AuditoriaRechazoEntity.class)
             .all();
+    }
+
+    public Mono<Long> count(Long idEjecucion) {
+
+        return databaseClient.sql("""
+            SELECT COUNT_BIG(*) AS totalItems
+            FROM auditoria.Auditoria_ETL_Rechazos
+            WHERE Id_Ejecucion = :idEjecucion
+        """).bind("idEjecucion", idEjecucion)
+            .map((row, metadata) -> row.get("totalItems", Long.class))
+            .one();
     }
 
     private String validateSortColumn(String sortBy) {

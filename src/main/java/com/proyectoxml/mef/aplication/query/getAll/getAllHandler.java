@@ -29,7 +29,8 @@ public class getAllHandler implements RequestHandler <getAllRequest, PaginationR
                 pg.getLimit(),
                 pg.isHasNext(),
                 pg.getNextLastSortValue(),
-                pg.getNextLastId()
+                pg.getNextLastId(),
+                pg.getTotalItems()
             );
         });
         

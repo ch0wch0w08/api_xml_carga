@@ -22,7 +22,8 @@ public class GetRechazosByIdEjecucionHandler implements RequestHandler<GetRechaz
                 page.getLimit(),
                 page.isHasNext(),
                 page.getNextLastSortValue(),
-                page.getNextLastId()
+                page.getNextLastId(),
+                page.getTotalItems()
             ));
     }
 

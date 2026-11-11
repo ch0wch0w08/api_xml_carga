@@ -22,7 +22,8 @@ public class GetAllEjecucionesHandler implements RequestHandler<GetAllEjecucione
                 page.getLimit(),
                 page.isHasNext(),
                 page.getNextLastSortValue(),
-                page.getNextLastId()
+                page.getNextLastId(),
+                page.getTotalItems()
             ));
     }
 

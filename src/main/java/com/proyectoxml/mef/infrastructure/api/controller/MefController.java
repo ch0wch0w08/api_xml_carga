@@ -4,8 +4,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.proyectoxml.mef.aplication.port.in.GastoPresupuestalResponse;
 import com.proyectoxml.mef.aplication.port.in.GastoPresupuestoFullResponse;
+import com.proyectoxml.mef.aplication.port.in.TiempoOptionsResponse;
 import com.proyectoxml.mef.aplication.query.getAll.getAllRequest;
 import com.proyectoxml.mef.aplication.query.getById.getByIdRequest;
+import com.proyectoxml.mef.aplication.query.getTiempoOptions.getTiempoOptionsRequest;
 import com.proyectoxml.mef.domain.model.pagination.GastoPresupuestalFilter;
 import com.proyectoxml.shared.domain.model.PaginationQuery;
 import com.proyectoxml.shared.domain.model.PaginationResponse;
@@ -26,6 +28,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 public class MefController {
     
     private final Mediator mediator;
+
+    @GetMapping("/tiempos")
+    @ResponseStatus (HttpStatus.OK)
+    public Mono<TiempoOptionsResponse> getTiempoOptions() {
+        return mediator.dispatch(new getTiempoOptionsRequest());
+    }
 
     @GetMapping("/{id}")
     @ResponseStatus (HttpStatus.OK)

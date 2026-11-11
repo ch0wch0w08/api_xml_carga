@@ -22,7 +22,8 @@ public class GetDetallesByIdEjecucionHandler implements RequestHandler<GetDetall
                 page.getLimit(),
                 page.isHasNext(),
                 page.getNextLastSortValue(),
-                page.getNextLastId()
+                page.getNextLastId(),
+                page.getTotalItems()
             ));
     }
 

@@ -24,7 +24,7 @@ public class GastoPresupuestoFullResponse {
     private BigDecimal devengado;
     private BigDecimal girado;
     private Integer idEjecucion;
-    private String urlOrigen;
+    private Long idUrl;
     private LocalDateTime fechaCarga;
     
     private Tiempo tiempo;
@@ -44,7 +44,7 @@ public class GastoPresupuestoFullResponse {
                 .devengado(gastoPresupuestal.getDevengado())
                 .girado(gastoPresupuestal.getGirado())
                 .idEjecucion(gastoPresupuestal.getIdEjecucion())
-                .urlOrigen(gastoPresupuestal.getUrlOrigen())
+                .idUrl(gastoPresupuestal.getIdUrl())
                 .fechaCarga(gastoPresupuestal.getFechaCarga())
                 .tiempo(gastoPresupuestal.getTiempo())
                 .entidad(gastoPresupuestal.getEntidad())

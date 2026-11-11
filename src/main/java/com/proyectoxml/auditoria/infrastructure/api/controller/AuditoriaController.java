@@ -6,6 +6,7 @@ import com.proyectoxml.auditoria.aplication.port.in.AuditoriaRechazoResponse;
 import com.proyectoxml.auditoria.aplication.query.getAllEjecuciones.GetAllEjecucionesRequest;
 import com.proyectoxml.auditoria.aplication.query.getDetallesByIdEjecucion.GetDetallesByIdEjecucionRequest;
 import com.proyectoxml.auditoria.aplication.query.getRechazosByIdEjecucion.GetRechazosByIdEjecucionRequest;
+import com.proyectoxml.auditoria.aplication.query.getAniosEje.GetAniosEjeRequest;
 import com.proyectoxml.auditoria.domain.model.pagination.AuditoriaDetalleFilter;
 import com.proyectoxml.auditoria.domain.model.pagination.AuditoriaEjecucionFilter;
 import com.proyectoxml.shared.domain.model.PaginationQuery;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,6 +29,12 @@ import reactor.core.publisher.Mono;
 public class AuditoriaController {
 
     private final Mediator mediator;
+
+    @GetMapping("/anios")
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<List<Integer>> getAniosEje() {
+        return mediator.dispatch(new GetAniosEjeRequest());
+    }
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)

@@ -9,7 +9,6 @@ import lombok.Data;
 public class GastoPresupuestalRequestDto {
     
     GastoPresupuestalFilter filter;
-
     PaginationQuery query;
     
 }

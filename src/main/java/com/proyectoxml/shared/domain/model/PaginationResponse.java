@@ -14,7 +14,7 @@ public class PaginationResponse <T>{
         private List<T> content;
         private int size;
         private int page;
-        private long totalItems;
+        private Long totalItems;
         private int totalPages;
     */
    
@@ -23,5 +23,16 @@ public class PaginationResponse <T>{
     private boolean hasNext;
     private Object nextLastSortValue;
     private Long nextLastId;
+    private Long totalItems;
+
+    public PaginationResponse(
+        List<T> content,
+        int limit,
+        boolean hasNext,
+        Object nextLastSortValue,
+        Long nextLastId
+    ) {
+        this(content, limit, hasNext, nextLastSortValue, nextLastId, null);
+    }
         
 }

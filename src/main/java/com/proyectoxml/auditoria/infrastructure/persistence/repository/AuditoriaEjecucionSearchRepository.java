@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Repository
 @RequiredArgsConstructor
@@ -22,11 +23,12 @@ public class AuditoriaEjecucionSearchRepository {
         String direction = "DESC".equalsIgnoreCase(pagination.getDirection()) ? "DESC" : "ASC";
         String comparison = "DESC".equals(direction) ? "<" : ">";
 
-        SqlQueryBuilder query = new SqlQueryBuilder("""
-            SELECT ae.*
+        SqlQueryBuilder query = new SqlQueryBuilder(String.format("""
+            SELECT TOP (%d) ae.*
             FROM auditoria.Auditoria_ETL_Ejecucion ae
-            WHERE 1 = 1
-            """);
+            WHERE 1 = 1 
+        """, pagination.getLimit()));
+
         filters.apply(filter, query);
 
         if (pagination.getLastSortValue() != null && pagination.getLastId() != null) {
@@ -34,22 +36,18 @@ public class AuditoriaEjecucionSearchRepository {
                 (
                     %s %s :lastSortValue
                     OR 
-                    (%s = :lastSortValue AND ae.Id_Ejecucion > :lastId)
+                    (%s = :lastSortValue AND ae.Id_Ejecucion %s :lastId)
                 )
-                """, sortColumn, comparison, sortColumn))
+                """, sortColumn, comparison, sortColumn, comparison))
                 .param("lastSortValue", pagination.getLastSortValue())
                 .param("lastId", pagination.getLastId());
         }
 
         String orderByClause = sortColumn.equalsIgnoreCase("ae.Id_Ejecucion") 
             ? String.format("ORDER BY ae.Id_Ejecucion %s", direction)
-            : String.format("ORDER BY %s %s, ae.Id_Ejecucion ASC", sortColumn, direction);
+            : String.format("ORDER BY %s %s, ae.Id_Ejecucion %s", sortColumn, direction, direction);
 
-        query.append(String.format("""
-            %s
-            OFFSET 0 ROWS 
-            FETCH NEXT %d ROWS ONLY
-            """, orderByClause, pagination.getLimit()));
+        query.append(orderByClause);
 
         return databaseClient.sql(query.sql())
             .bindValues(query.params())
@@ -57,8 +55,23 @@ public class AuditoriaEjecucionSearchRepository {
             .all();
     }
 
+    public Mono<Long> count(AuditoriaEjecucionFilter filter) {
+
+        SqlQueryBuilder query = new SqlQueryBuilder("""
+            SELECT COUNT_BIG(*) AS totalItems
+            FROM auditoria.Auditoria_ETL_Ejecucion ae
+            WHERE 1 = 1
+        """);
+        
+        filters.apply(filter, query);
+        return databaseClient.sql(query.sql())
+            .bindValues(query.params())
+            .map((row, metadata) -> row.get("totalItems", Long.class))
+            .one();
+    }
+
     private String validateSortColumn(String sortBy) {
-        if (sortBy == null) {
+        if (sortBy == null || sortBy.isBlank()) {
             return "ae.Id_Ejecucion";
         }
         return switch (sortBy.toLowerCase().replace("ae.", "")) {

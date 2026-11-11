@@ -16,9 +16,7 @@ import com.proyectoxml.mef.infrastructure.persistence.repository.TiempoR2dbcRepo
 import com.proyectoxml.mef.infrastructure.persistence.repository.UbigeoR2dbcRepository;
 import com.proyectoxml.shared.domain.model.PaginationQuery;
 import com.proyectoxml.shared.domain.model.PaginationResponse;
-
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
 import reactor.core.publisher.Mono;
@@ -62,11 +60,11 @@ public class RepositoryMefAdapter implements RepositoryMef {
         int limitOriginal = query.getLimit();
         query.setLimit(query.getLimit() + 1);
 
-        return repositorySearch
-            .search(filtro, query)
-            .map(g -> mapper.toDomain(g))
-            .collectList()
-            .map(g1 -> {
+        return Mono.zip(
+            repositorySearch.search(filtro, query).map(mapper::toDomain).collectList(),
+            repositorySearch.count(filtro)
+        ).map(tuple -> {
+                var g1 = tuple.getT1();
                 boolean hasNext = g1.size() > limitOriginal;
                 if(hasNext){
                     g1.remove(g1.size() - 1);
@@ -85,7 +83,8 @@ public class RepositoryMefAdapter implements RepositoryMef {
                     limitOriginal,
                     hasNext,
                     nextLastSortValue,
-                    nextIdHecho
+                    nextIdHecho,
+                    tuple.getT2()
                 );
             });
     }
@@ -93,11 +92,19 @@ public class RepositoryMefAdapter implements RepositoryMef {
     private Object extraerValorSort(GastoPresupuestal registro, String sortBy) {
 
         if (sortBy == null) return registro.getIdHecho();
-        String campo = sortBy.toLowerCase();
+        String campo = sortBy.toLowerCase().replace("fg.", "");
 
         switch (campo) {
             case "idhecho": 
                 return registro.getIdHecho();
+            case "idtiempo":
+                return registro.getTiempo().getIdTiempo();
+            case "identidad":
+                return registro.getEntidad().getIdEntidad();
+            case "idclasificador":
+                return registro.getClasificador().getIdClasificador();
+            case "idubicacion":
+                return registro.getUbicacion().getIdUbicacion();
             case "pia": 
                 return registro.getPia();
             case "pim": 
@@ -115,8 +122,8 @@ public class RepositoryMefAdapter implements RepositoryMef {
                 return registro.getGirado();
             case "idejecucion": 
                 return registro.getIdEjecucion();
-            case "urlorigen": 
-                return registro.getUrlOrigen();
+            case "idurl":
+                return registro.getIdUrl();
             case "fechacarga": 
                 return registro.getFechaCarga();
             default: 
